@@ -43,6 +43,13 @@ Construção de sistema web como parte do teste técnico para a vaga de Desenvol
       $password = "root";
       $db = "mysql-db";`
 
+* Entre no container do Apache do container:
+
+    `docker exec -it teste-turim bash`
+
+* Dentro do container, utilize o seguinte comando:
+
+    `composer install`
 
 * Utilizando o phpMyAdmin, crie as tabelas necessárias ou chame a função criarBD presente em PessoaController:
 
