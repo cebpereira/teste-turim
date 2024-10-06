@@ -1,71 +1,96 @@
 <?php
+
 require_once '../db_config.php';
-require_once '../Model/Pessoa.php';
 
 class PessoaController
 {
     private $conexao;
 
-    public function __construct()
+    public function __construct($host, $user, $password, $database)
     {
-        global $conexao;
-        $this->conexao = $conexao;
+        $this->conectar($host, $user, $password, $database);
+        $this->criarBD($database);
+    }
+
+    public function conectar($host, $user, $password, $database)
+    {
+        $this->conexao = mysqli_connect($host, $user, $password, $database);
+
+        if (!$this->conexao) {
+            die("Erro na conexão com o banco de dados: " . mysqli_connect_error());
+        }
+    }
+
+    public function criarBD($database)
+    {
+        $sql = "CREATE DATABASE IF NOT EXISTS `$database`";
+        if (mysqli_query($this->conexao, $sql)) {
+            mysqli_select_db($this->conexao, $database);
+            $this->criarTabelas();
+        } else {
+            die("Erro ao criar o banco de dados: " . mysqli_error($this->conexao));
+        }
+    }
+
+    private function criarTabelas()
+    {
+        $sql = "CREATE TABLE IF NOT EXISTS pessoas (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            nome VARCHAR(255) NOT NULL
+        )";
+
+        if (!mysqli_query($this->conexao, $sql)) {
+            die("Erro ao criar tabela pessoas: " . mysqli_error($this->conexao));
+        }
+
+        $sql = "CREATE TABLE IF NOT EXISTS filhos (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            nome VARCHAR(255) NOT NULL,
+            pessoa_id INT,
+            FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE CASCADE
+        )";
+
+        if (!mysqli_query($this->conexao, $sql)) {
+            die("Erro ao criar tabela filhos: " . mysqli_error($this->conexao));
+        }
     }
 
     public function gravar($json)
     {
-        $data = json_decode($json, true);
-
         $this->conexao->query("DELETE FROM filhos");
         $this->conexao->query("DELETE FROM pessoas");
 
-        $stmtPessoa = $this->conexao->prepare("INSERT INTO pessoas (nome) VALUES (?)");
+        $data = json_decode($json, true);
 
         foreach ($data['pessoas'] as $pessoa) {
-            $nome = $pessoa['nome'];
-            $stmtPessoa->bind_param("s", $nome);
-            $stmtPessoa->execute();
+            $nome = mysqli_real_escape_string($this->conexao, $pessoa['nome']);
+            $this->conexao->query("INSERT INTO pessoas (nome) VALUES ('$nome')");
+            $pessoa_id = $this->conexao->insert_id;
 
-            if (isset($pessoa['filhos']) && is_array($pessoa['filhos'])) {
-                $idPessoa = $this->conexao->insert_id;
-                $stmtFilho = $this->conexao->prepare("INSERT INTO filhos (pessoa_id, nome) VALUES (?, ?)");
-
-                foreach ($pessoa['filhos'] as $filho) {
-                    $stmtFilho->bind_param("is", $idPessoa, $filho);
-                    $stmtFilho->execute();
-                }
-
-                $stmtFilho->close();
+            foreach ($pessoa['filhos'] as $filho) {
+                $nomeFilho = mysqli_real_escape_string($this->conexao, $filho);
+                $this->conexao->query("INSERT INTO filhos (pessoa_id, nome) VALUES ($pessoa_id, '$nomeFilho')");
             }
         }
-
-        $stmtPessoa->close();
-        return json_encode(["status" => "success", "message" => "Dados gravados com sucesso."]);
     }
-
 
     public function ler()
     {
-        $pessoasArray = [];
-
-        $sql = "SELECT p.id, p.nome AS pessoa_nome, f.nome AS filho_nome 
-                FROM pessoas p 
-                LEFT JOIN filhos f ON p.id = f.pessoa_id";
-        $result = $this->conexao->query($sql);
+        $result = $this->conexao->query("SELECT * FROM pessoas");
+        $pessoas = [];
 
         while ($row = $result->fetch_assoc()) {
-            $pessoaId = $row['id'];
-            if (!isset($pessoasArray[$pessoaId])) {
-                $pessoasArray[$pessoaId] = [
-                    'nome' => $row['pessoa_nome'],
-                    'filhos' => []
-                ];
+            $filhos = [];
+            $filhosResult = $this->conexao->query("SELECT nome FROM filhos WHERE pessoa_id = " . $row['id']);
+            while ($filhoRow = $filhosResult->fetch_assoc()) {
+                $filhos[] = $filhoRow['nome'];
             }
-            if ($row['filho_nome']) {
-                $pessoasArray[$pessoaId]['filhos'][] = $row['filho_nome'];
-            }
+            $pessoas[] = [
+                'nome' => $row['nome'],
+                'filhos' => $filhos
+            ];
         }
 
-        return json_encode(['pessoas' => array_values($pessoasArray)], JSON_PRETTY_PRINT);
+        return json_encode(['pessoas' => $pessoas]);
     }
 }
