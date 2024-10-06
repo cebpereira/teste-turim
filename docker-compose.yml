@@ -1,0 +1,36 @@
+services:
+
+  apache:
+    container_name: teste-turim
+    build: ./docker/.
+    volumes:
+      - .:/var/www/html/teste-turim
+    restart: always
+    ports:
+      - 80:80
+    networks:
+      - teste-turim-network
+    depends_on:
+      - mysql_db
+
+  mysql_db:
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: mysql-db
+    ports:
+      - 3306:3306
+    networks:
+      - teste-turim-network
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    ports:
+      - 8080:80
+    environment:
+      - PMA_ARBITRARY=1
+    networks:
+      - teste-turim-network
+
+networks:
+  teste-turim-network: {}
