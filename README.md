@@ -43,7 +43,7 @@ Construção de sistema web como parte do teste técnico para a vaga de Desenvol
       $password = "root";
       $db = "mysql-db";`
 
-* Entre no container do Apache do container:
+* Entre no container do Apache:
 
     `docker exec -it teste-turim bash`
 
