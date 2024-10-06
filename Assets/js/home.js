@@ -35,6 +35,7 @@ function ler() {
   });
 }
 
+// Função para adicionar uma pessoa
 function incluirPessoa() {
   let nome = document.getElementById("nomePessoa").value;
   if (nome) {
