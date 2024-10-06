@@ -1,0 +1,45 @@
+1. Clonar o repositório atual para sua máquina local:
+
+	git clone https://github.com/cebpereira/teste-turim
+
+2. Navegar para a pasta do projeto:
+
+	cd teste-turim
+
+3. Executar o comando abaixo no terminal:
+
+	docker compose up -d
+
+4. Aguarde a execução do comando terminar, em caso de sucesso, os containers estarão ativos e o projeto estará rodando via localhost nas seguintes portas:
+
+	8080 -> PhpMyAdmin
+	3306 -> MySQL
+	80 -> Apache
+
+5. Configure o arquivo 'db_config.php' com seus dados de conexão com o banco, exemplo:
+
+	$host = "mysql_db"; $user = "root"; $password = "root"; $db = "mysql-db";
+
+6. Entre no container do Apache do container:
+
+	docker exec -it teste-turim bash
+
+7. Dentro do container, utilize o seguinte comando:
+
+	composer install
+
+8. Utilizando o phpMyAdmin, crie as tabelas necessárias ou chame a função criarBD presente em PessoaController:
+
+	CREATE TABLE IF NOT EXISTS pessoas (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		nome VARCHAR(255) NOT NULL
+	);
+
+	CREATE TABLE IF NOT EXISTS filhos (
+		id INT AUTO_INCREMENT PRIMARY KEY,
+		nome VARCHAR(255) NOT NULL,
+		pessoa_id INT,
+		FOREIGN KEY (pessoa_id) REFERENCES pessoas(id) ON DELETE CASCADE
+	);
+
+A rota inicial do projeto é a localhost.
